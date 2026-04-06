@@ -1,0 +1,23 @@
+eliminar el archivo y sustiuirlo por los scrips extraidos de cada servidor.
+(crear archivos dentro de esta carpeta .sql en donde iran los codigos de acuerdo a cada servidor y BDD)
+
+parecen ser 4 archivos, llevaran por nombre.
+
+supabase_a.sql
+supabase_b.sql
+postgres_local.sql
+cola_pendientes.sql
+
+RESUMEN FINAL (para que lo copies y se lo expliques a Kenya)
+Archivo	Contiene	Se genera
+supabase_a.sql	CREATE TABLE... (solo estructura)	Una vez al inicio
+supabase_b.sql	CREATE TABLE... (solo estructura)	Una vez al inicio
+postgres_local.sql	CREATE TABLE... (solo estructura)	Una vez al inicio
+cola_pendientes.sql	Tabla extra para fallos	Una vez al inicio
+NO van:
+
+Datos de productos, ventas, usuarios
+
+Respaldos binarios
+
+Archivos de configuración de Supabase
