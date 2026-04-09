@@ -8,7 +8,7 @@ $sucursal = $_SERVER['HTTP_X_SUCURSAL'] ?? $_GET['sucursal'] ?? 'A';
 
 if (!in_array($sucursal, ['A', 'B', 'local'])) {
     // error_log("Sucursal inválida: $sucursal");
-    echo json_encode(['error' => 'Sucursal inválida']);
+    echo json_encode(['error' => 'Sucursal invalida']);
     exit;
 }
 
@@ -25,62 +25,143 @@ $id = $_GET['id'] ?? null;
 
 try {
     switch ($accion) {
+        // ==================== PRODUCTOS ====================
         case 'productos' :
             if ($id) {
                 $stmt = $conn->prepare("
                     SELECT p.*, c.nombre as categoria_nombre
-                    FROM productos p
-                    JOIN categorias c ON p.idcategoria = c.idcategoria
-                    WHERE p.idproducto = ?
+                    FROM producto p
+                    LEFT JOIN categoria c ON p.IdCategoria = c.IdCategoria
+                    WHERE p.IdProducto = ?
                 ");
                 $stmt->execute([$id]);
 
             } else {
                 $stmt = $conn->query("
                     SELECT p.*, c.nombre as categoria_nombre
-                    FROM productos p
-                    LEFT JOIN categorias c ON p.idcategoria = c.idcategoria
-                    ORDER BY p.idproducto
+                    FROM producto p
+                    LEFT JOIN categoria c ON p.IdCategoria = c.IdCategoria
+                    ORDER BY p.IdProducto
                 ");
                 echo json_encode(['error' => 'ID de producto no proporcionado']);
             }
             $resultado = $stmt->fetchAll();
             break;
 
-        case 'stock' :
+        // ==================== CATEGORÍAS ====================
+        case 'categorias':
+            if ($id) {
+                $stmt = $conn->prepare("SELECT * FROM categoria WHERE IdCategoria = ?");
+                $stmt->execute([$id]);
+            } else {
+                $stmt = $conn->query("SELECT * FROM categoria ORDER BY Nombre");
+            }
+            $resultado = $stmt->fetchAll();
+            break;
+
+        // ==================== ALMACENES ====================
+        case 'almacenes':
+            if ($id) {
+                $stmt = $conn->prepare("SELECT * FROM almacen WHERE IdAlmacen = ?");
+                $stmt->execute([$id]);
+            } else {
+                $stmt = $conn->query("SELECT * FROM almacen WHERE Activo = true ORDER BY Nombre");
+            }
+            $resultado = $stmt->fetchAll();
+            break;
+        
+        // ==================== USUARIOS ====================
+        case 'usuarios':
+            if ($id) {
+                $stmt = $conn->prepare("SELECT IdUsuario, Nombre, UsuarioLogin, Rol FROM usuario WHERE IdUsuario = ?");
+                $stmt->execute([$id]);
+            } else {
+                $stmt = $conn->query("SELECT IdUsuario, Nombre, UsuarioLogin, Rol FROM usuario ORDER BY Nombre");
+            }
+            $resultado = $stmt->fetchAll();
+            break;
+
+        // ==================== STOCK (existencias)====================
+        case 'stock':
             if (!$id) {
                 echo json_encode(['error' => 'Se requiere id de producto']);
                 exit;
             }
-            $stmt = $conn->prepare("SELECT stockactual FROM existencia WHERE idproducto = ?");
+            $stmt = $conn->prepare("SELECT StockActual FROM existencia WHERE IdProducto = ?");
             $stmt->execute([$id]);
             $row = $stmt->fetch();
             $resultado = ['stock' => $row ? $row['stockactual'] : 0];
             break;
 
+        // ==================== STOCK DETALLADO (por lote/ubicación) ====================
+        case 'stock_detallado':
+            $idProducto = $_GET['idproducto'] ?? null;
+            $idAlmacen = $_GET['idalmacen'] ?? null;
+            
+            $sql = "SELECT * FROM vista_stock_detallado WHERE 1=1";
+            $params = [];
+            
+            if ($idProducto) {
+                $sql .= " AND IdProducto = ?";
+                $params[] = $idProducto;
+            }
+            if ($idAlmacen) {
+                $sql .= " AND IdAlmacen = ?";
+                $params[] = $idAlmacen;
+            }
+            
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            $resultado = $stmt->fetchAll();
+            break;
+
+        // ==================== STOCK TOTAL ====================
+        case 'stock_total':
+            $stmt = $conn->query("SELECT * FROM vista_stock_total ORDER BY Producto");
+            $resultado = $stmt->fetchAll();
+            break;
+
+        // ==================== ALERTAS STOCK BAJO ====================
+        case 'alertas':
+            $stmt = $conn->query("SELECT * FROM vista_alertas_stock_bajo ORDER BY Faltante DESC");
+            $resultado = $stmt->fetchAll();
+            break;
+        
+        // ==================== MOVIMIENTOS ====================
         case 'movimientos':
             $limite = $_GET['limite'] ?? 50;
             $stmt = $conn->prepare("
-                SELECT m.idmovimiento, m.fecha, a.nombre as almacen, u.nombre as usuario, 
-                       tm.nombre as tipo, m.observaciones
+                SELECT m.IdMovimiento, m.Fecha, a.Nombre as almacen, u.Nombre as usuario, 
+                       tm.Nombre as tipo, m.Observaciones
                 FROM movimiento m
-                JOIN almacen a ON m.idalmacen = a.idalmacen
-                JOIN usuario u ON m.idusuario = u.idusuario
-                JOIN tipomovimiento tm ON m.idtipomovimiento = tm.idtipomovimiento
-                ORDER BY m.fecha DESC
+                JOIN almacen a ON m.IdAlmacen = a.IdAlmacen
+                JOIN usuario u ON m.IdUsuario = u.IdUsuario
+                JOIN tipomovimiento tm ON m.IdTipoMovimiento = tm.IdTipoMovimiento
+                ORDER BY m.Fecha DESC
                 LIMIT ?
             ");
             $stmt->execute([$limite]);
             $resultado = $stmt->fetchAll();
             break;
-        
-        case 'categorias':
-            $stmt = $conn->query("SELECT * FROM categoria ORDER BY nombre");
+
+        // ==================== TIPOS DE MOVIMIENTO ====================
+        case 'tipos_movimiento':
+            $stmt = $conn->query("SELECT * FROM tipomovimiento ORDER BY IdTipoMovimiento");
+            $resultado = $stmt->fetchAll();
+            break;
+
+        // ==================== COLA PENDIENTES ====================
+        case 'cola_pendientes':
+            $estado = $_GET['estado'] ?? 'pendiente';
+            $stmt = $conn->prepare("SELECT * FROM cola_pendientes WHERE estado = ? ORDER BY id");
+            $stmt->execute([$estado]);
             $resultado = $stmt->fetchAll();
             break;
         
         default:
-            echo json_encode(['error' => 'Accion no valida']);
+            echo json_encode(['error' => 'Acción no valida. Opciones: productos, categorias, almacenes, 
+            usuarios, stock, stock_detallado, stock_total, alertas, movimientos, tipos_movimiento, 
+            cola_pendientes']);
             exit;
     }
 
@@ -97,3 +178,4 @@ try {
         'servidor' => $sucursal
     ]);
 }
+?>

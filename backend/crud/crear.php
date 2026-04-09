@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $sucursal = $_SERVER['HTTP_X_SUCURSAL'] ?? $_POST['sucursal'] ?? 'A';
 
 if (!in_array($sucursal, ['A', 'B', 'local'])) {
-    echo json_encode(['error' => 'Sucursal no válida']);
+    echo json_encode(['error' => 'Sucursal no valida']);
     exit;
 }
 
@@ -32,8 +32,8 @@ if (!$tabla || empty($datos)) {
     exit;
 }
 
-// Lista de tablas permitidas (seguridad)
-$tablasPermitidas = ['producto', 'categoria', 'almacen', 'usuario'];
+// Tablas permitidas (seguridad)
+$tablasPermitidas = ['producto', 'categoria', 'almacen', 'usuario', 'tipomovimiento'];
 if (!in_array($tabla, $tablasPermitidas)) {
     echo json_encode(['error' => 'Tabla no permitida']);
     exit;
@@ -57,7 +57,7 @@ try {
         $tabla,
         implode(', ', $columnas),
         implode(', ', $placeholders),
-        $tabla === 'producto' ? 'producto' : ''
+        ucfirst($tabla)
     );
     
     $stmt = $conn->prepare($sql);
@@ -70,7 +70,7 @@ try {
         'success' => true,
         'servidor' => $sucursal,
         'id' => $nuevoId,
-        'mensaje' => 'Registro creado correctamente'
+        'mensaje' => "Registro creado en {$tabla}"
     ]);
 
 } catch (PDOException $e) {
@@ -80,3 +80,4 @@ try {
         'servidor' => $sucursal
     ]);
 }
+?>

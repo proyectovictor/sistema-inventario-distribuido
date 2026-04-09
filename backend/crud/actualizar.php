@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'PUT' && $_SERVER['REQUEST_METHOD'] !== 'POST
 $sucursal = $_SERVER['HTTP_X_SUCURSAL'] ?? $_REQUEST['sucursal'] ?? 'A';
 
 if (!in_array($sucursal, ['A', 'B', 'local'])) {
-    echo json_encode(['error' => 'Sucursal no válida']);
+    echo json_encode(['error' => 'Sucursal no valida']);
     exit;
 }
 
@@ -30,11 +30,22 @@ if (!$tabla || !$id || empty($datos)) {
     exit;
 }
 
-$tablasPermitidas = ['producto', 'categoria', 'almacen', 'usuario'];
+$tablasPermitidas = ['producto', 'categoria', 'almacen', 'usuario', 'tipomovimiento'];
 if (!in_array($tabla, $tablasPermitidas)) {
     echo json_encode(['error' => 'Tabla no permitida']);
     exit;
 }
+
+// Mapeo de tabla a su columna ID
+$idColumnas = [
+    'producto' => 'IdProducto',
+    'categoria' => 'IdCategoria',
+    'almacen' => 'IdAlmacen',
+    'usuario' => 'IdUsuario',
+    'tipomovimiento' => 'IdTipoMovimiento'
+];
+
+$idColumna = $idColumnas[$tabla];
 
 $db = new DatabaseManager();
 $conn = $db->getConnection($sucursal);
@@ -58,7 +69,7 @@ try {
         "UPDATE %s SET %s WHERE id%s = ?",
         $tabla,
         implode(', ', $sets),
-        $tabla === 'producto' ? 'producto' : $tabla
+        $idColumna
     );
     
     $stmt = $conn->prepare($sql);
@@ -68,7 +79,7 @@ try {
         'success' => true,
         'servidor' => $sucursal,
         'filas_afectadas' => $stmt->rowCount(),
-        'mensaje' => 'Registro actualizado correctamente'
+        'mensaje' => "Registro actualizado en {$tabla}"
     ]);
 
 } catch (PDOException $e) {
@@ -78,3 +89,4 @@ try {
         'servidor' => $sucursal
     ]);
 }
+?>
