@@ -15,7 +15,12 @@ function setSingleBranch(DatabaseManager $db, string $branch) {
 }
 
 try {
-    $branch = strtoupper($_GET['branch'] ?? 'A');
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        parse_str(file_get_contents('php://input'), $input);
+    }
+    
+    $branch = strtoupper($input['branch'] ?? 'A');
     if (!in_array($branch, ['A', 'B'])) {
         throw new Exception("Sucursal inválida. Use 'A' o 'B'.");
     }
@@ -28,23 +33,17 @@ try {
         throw new Exception("No se pudo conectar a la sucursal $branch");
     }
     
-    $id = isset($_GET['id']) ? intval($_GET['id']) : null;
-    
-    if ($id) {
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE idproducto = :id");
-        $stmt->execute([':id' => $id]);
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$data) {
-            throw new Exception("Producto no encontrado");
-        }
-    } else {
-        $stmt = $conn->query("SELECT * FROM producto ORDER BY nombre");
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $id = intval($input['id'] ?? $_GET['id'] ?? 0);
+    if ($id <= 0) {
+        throw new Exception("ID inválido");
     }
+    
+    $stmt = $conn->prepare("DELETE FROM producto WHERE idproducto = :id");
+    $stmt->execute([':id' => $id]);
     
     echo json_encode([
         'success' => true,
-        'data' => $data,
+        'rows_affected' => $stmt->rowCount(),
         'server_used' => $db->getActiveServer()
     ]);
 } catch (Exception $e) {
