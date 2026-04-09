@@ -32,7 +32,7 @@ class DatabaseManager
                 'port'     => getenv('DB_B_PORT') ?: '6543',
                 'dbname'   => getenv('DB_B_DBNAME') ?: 'postgres',
                 'user'     => getenv('DB_B_USER') ?: 'postgres.wivjjmadhmsbzcytceyk',
-                'password' => getenv('DB_B_PASSWORD') ?: 'Chettos123#',
+                'password' => getenv('DB_B_PASSWORD') ?: 'Chettos456#',
                 'sslmode'  => 'require'
             ],
             'local' => [  
