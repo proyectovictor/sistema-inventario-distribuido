@@ -1,0 +1,120 @@
+.titulo-form {
+  color: #ffffff;
+}
+body {
+  margin: 0;
+  background-color: #0f172a;
+  font-family: 'Segoe UI', sans-serif;
+  color: #e5e7eb;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 230px;
+  height: 100vh;
+  background: #020617;
+  position: fixed;
+  padding: 20px;
+}
+
+.sidebar h4 {
+  color: white;
+  margin-bottom: 30px;
+}
+
+.sidebar a {
+  display: block;
+  color: #9ca3af;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.sidebar a:hover {
+  background-color: #1e293b;
+  color: white;
+}
+
+/* CONTENIDO */
+.content {
+  margin-left: 250px;
+  padding: 30px;
+}
+
+/* CARDS */
+.card {
+  background-color: #111827;
+  border: none;
+  border-radius: 15px;
+}
+
+/* INPUTS */
+input, select, textarea {
+  background-color: #020617 !important;
+  border: 1px solid #374151 !important;
+  color: white !important;
+  border-radius: 10px !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 8px #3b82f6;
+}
+
+/* ICONOS */
+.input-group-text {
+  background-color: #020617;
+  border: 1px solid #374151;
+  color: #9ca3af;
+}
+
+/* BOTÓN */
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: none;
+}
+
+/* TABLA */
+.table {
+  color: white;
+}
+
+.table thead {
+  background-color: #020617;
+}
+
+.table tbody tr:hover {
+  background-color: #1f2937;
+}
+
+/* STATS */
+.stat-card {
+  background: linear-gradient(135deg, #1e293b, #020617);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+/* AUTOCOMPLETE */
+.autocomplete-box {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  background: #020617;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.autocomplete-item {
+  padding: 10px;
+  cursor: pointer;
+  color: #e5e7eb;
+}
+
+.autocomplete-item:hover {
+  background-color: #1e293b;
+}
