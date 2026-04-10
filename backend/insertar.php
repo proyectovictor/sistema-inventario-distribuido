@@ -1,73 +1,105 @@
 <?php
-header('Content-Type: application/json');
-require_once 'conexion.php';
-
 /**
- * Configura DatabaseManager para que SOLO use la sucursal indicada (sin fallback)
+ * insertar.php
+ * API REST para insertar datos (POST)
+ * 
+ * Uso:
+ * - POST /insertar.php
+ *   Headers: X-Sucursal: A
+ *   Body: {"tipo": "entrada", "idproducto": 1, "cantidad": 10, ...}
  */
-function setSingleBranch(DatabaseManager $db, string $branch) {
-    $reflection = new ReflectionClass($db);
-    $prop = $reflection->getProperty('config');
-    $prop->setAccessible(true);
-    $config = $prop->getValue($db);
-    
-    // Verificar que la sucursal existe en la configuración
-    if (!isset($config[$branch])) {
-        throw new Exception("Sucursal $branch no está configurada");
-    }
-    
-    // Dejar solo la sucursal elegida
-    $newConfig = [$branch => $config[$branch]];
-    $prop->setValue($db, $newConfig);
+
+declare(strict_types=1);
+
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Sucursal');
+
+// Responder a preflight CORS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
 }
 
-try {
-    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-    $branch = strtoupper($input['branch'] ?? 'A');
-    if (!in_array($branch, ['A', 'B'])) {
-        throw new Exception("Sucursal inválida. Use 'A' o 'B'.");
-    }
-    
-    $db = new DatabaseManager();
-    setSingleBranch($db, $branch);
-    
-    $conn = $db->getConnection();  // Solo intentará conectar a la sucursal elegida
-    if (!$conn) {
-        throw new Exception("No se pudo conectar a la sucursal $branch");
-    }
-    
-    $nombre = trim($input['nombre'] ?? '');
-    $precio = floatval($input['precio'] ?? 0);
-    $descripcion = $input['descripcion'] ?? null;
-    $codigoBarras = $input['codigo_barras'] ?? null;
-    $stockMinimo = intval($input['stock_minimo'] ?? 0);
-    $idCategoria = !empty($input['id_categoria']) ? intval($input['id_categoria']) : null;
-    
-    if (empty($nombre)) {
-        throw new Exception("El nombre es obligatorio");
-    }
-    
-    $sql = "INSERT INTO producto (nombre, descripcion, codigobarras, precio, stockminimo, idcategoria)
-            VALUES (:nombre, :descripcion, :codigo, :precio, :stockminimo, :idcategoria)
-            RETURNING idproducto";
-    
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([
-        ':nombre' => $nombre,
-        ':descripcion' => $descripcion,
-        ':codigo' => $codigoBarras,
-        ':precio' => $precio,
-        ':stockminimo' => $stockMinimo,
-        ':idcategoria' => $idCategoria
-    ]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    echo json_encode([
-        'success' => true,
-        'id' => $row['idproducto'],
-        'server_used' => $db->getActiveServer()
-    ]);
-} catch (Exception $e) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+// Solo permitir POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Método no permitido. Use POST']);
+    exit;
 }
+
+// Obtener sucursal (header o POST)
+$sucursal = $_SERVER['HTTP_X_SUCURSAL'] ?? $_POST['sucursal'] ?? 'A';
+
+if (!in_array($sucursal, ['A', 'B', 'local'])) {
+    echo json_encode(['error' => 'Sucursal no válida. Use A, B o local']);
+    exit;
+}
+
+// Leer body (JSON o form-data)
+$input = json_decode(file_get_contents('php://input'), true);
+if (!$input) {
+    $input = $_POST;
+}
+
+$tipo = $input['tipo'] ?? '';
+
+// Mapear tipo a archivo CRUD
+switch ($tipo) {
+    case 'producto':
+        $archivo = 'crear.php';
+        $tabla = 'producto';
+        break;
+    case 'categoria':
+        $archivo = 'crear.php';
+        $tabla = 'categoria';
+        break;
+    case 'almacen':
+        $archivo = 'crear.php';
+        $tabla = 'almacen';
+        break;
+    case 'usuario':
+        $archivo = 'crear.php';
+        $tabla = 'usuario';
+        break;
+    case 'entrada':
+        $archivo = 'entrada.php';
+        break;
+    case 'salida':
+        $archivo = 'salida.php';
+        break;
+    default:
+        echo json_encode(['error' => 'Tipo de operación no válido', 'tipos_permitidos' => ['producto', 'categoria', 'almacen', 'usuario', 'entrada', 'salida']]);
+        exit;
+}
+
+// Para operaciones CRUD normales
+if (in_array($tipo, ['producto', 'categoria', 'almacen', 'usuario'])) {
+    $crudFile = __DIR__ . '/crud/' . $archivo;
+    if (!file_exists($crudFile)) {
+        echo json_encode(['error' => 'Archivo CRUD no encontrado']);
+        exit;
+    }
+    
+    // Preparar datos para el CRUD
+    $_POST['tabla'] = $tabla;
+    $_POST['datos'] = $input['datos'] ?? $input;
+    $_POST['sucursal'] = $sucursal;
+    
+    require_once $crudFile;
+    exit;
+}
+
+// Para operaciones de inventario (entrada/salida)
+$archivoInventario = __DIR__ . '/operaciones/' . $archivo;
+if (!file_exists($archivoInventario)) {
+    echo json_encode(['error' => 'Archivo de operación no encontrado. Crea la carpeta operaciones/']);
+    exit;
+}
+
+// Preparar datos para operación
+$_POST = array_merge($_POST, $input);
+$_POST['sucursal'] = $sucursal;
+
+require_once $archivoInventario;

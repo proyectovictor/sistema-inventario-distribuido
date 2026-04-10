@@ -1,53 +1,77 @@
 <?php
+/**
+ * consultar.php
+ * API REST para consultar datos (GET)
+ * 
+ * Uso:
+ * - GET /consultar.php?accion=productos&sucursal=A
+ * - GET /consultar.php?accion=stock&id=1&sucursal=B
+ * - GET /consultar.php?accion=alertas&sucursal=local
+ */
+
+declare(strict_types=1);
+
 header('Content-Type: application/json');
-require_once 'conexion.php';
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-Sucursal');
 
-function setSingleBranch(DatabaseManager $db, string $branch) {
-    $reflection = new ReflectionClass($db);
-    $prop = $reflection->getProperty('config');
-    $prop->setAccessible(true);
-    $config = $prop->getValue($db);
-    if (!isset($config[$branch])) {
-        throw new Exception("Sucursal $branch no está configurada");
-    }
-    $newConfig = [$branch => $config[$branch]];
-    $prop->setValue($db, $newConfig);
+// Responder a preflight CORS
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
 }
 
-try {
-    $branch = strtoupper($_GET['branch'] ?? 'A');
-    if (!in_array($branch, ['A', 'B'])) {
-        throw new Exception("Sucursal inválida. Use 'A' o 'B'.");
-    }
-    
-    $db = new DatabaseManager();
-    setSingleBranch($db, $branch);
-    
-    $conn = $db->getConnection();
-    if (!$conn) {
-        throw new Exception("No se pudo conectar a la sucursal $branch");
-    }
-    
-    $id = isset($_GET['id']) ? intval($_GET['id']) : null;
-    
-    if ($id) {
-        $stmt = $conn->prepare("SELECT * FROM producto WHERE idproducto = :id");
-        $stmt->execute([':id' => $id]);
-        $data = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$data) {
-            throw new Exception("Producto no encontrado");
-        }
-    } else {
-        $stmt = $conn->query("SELECT * FROM producto ORDER BY nombre");
-        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-    
-    echo json_encode([
-        'success' => true,
-        'data' => $data,
-        'server_used' => $db->getActiveServer()
-    ]);
-} catch (Exception $e) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+// Solo permitir GET
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Método no permitido. Use GET']);
+    exit;
 }
+
+// Obtener sucursal (header o GET parameter)
+$sucursal = $_SERVER['HTTP_X_SUCURSAL'] ?? $_GET['sucursal'] ?? 'A';
+
+if (!in_array($sucursal, ['A', 'B', 'local'])) {
+    echo json_encode(['error' => 'Sucursal no válida. Use A, B o local']);
+    exit;
+}
+
+$accion = $_GET['accion'] ?? '';
+$id = $_GET['id'] ?? null;
+
+// Mapear acción a archivo CRUD
+$mapaAcciones = [
+    'productos' => 'leer.php',
+    'categorias' => 'leer.php',
+    'almacenes' => 'leer.php',
+    'usuarios' => 'leer.php',
+    'stock' => 'leer.php',
+    'stock_detallado' => 'leer.php',
+    'stock_total' => 'leer.php',
+    'alertas' => 'leer.php',
+    'movimientos' => 'leer.php',
+    'tipos_movimiento' => 'leer.php',
+    'cola_pendientes' => 'leer.php'
+];
+
+if (!isset($mapaAcciones[$accion])) {
+    echo json_encode(['error' => 'Acción no válida', 'acciones_disponibles' => array_keys($mapaAcciones)]);
+    exit;
+}
+
+// Redirigir al CRUD correspondiente con los parámetros
+$crudFile = __DIR__ . '/crud/' . $mapaAcciones[$accion];
+if (!file_exists($crudFile)) {
+    echo json_encode(['error' => 'Archivo CRUD no encontrado']);
+    exit;
+}
+
+// Incluir el archivo CRUD (pasará los parámetros por $_GET)
+$_GET['accion'] = $accion;
+if ($id) {
+    $_GET['id'] = $id;
+}
+$_GET['sucursal'] = $sucursal;
+
+require_once $crudFile;
