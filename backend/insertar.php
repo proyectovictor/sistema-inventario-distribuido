@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Solo permitir POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    echo json_encode(['error' => 'Método no permitido. Use POST']);
+    echo json_encode(['error' => 'Metodo no permitido. Use POST']);
     exit;
 }
 
@@ -70,7 +70,7 @@ switch ($tipo) {
         $archivo = 'salida.php';
         break;
     default:
-        echo json_encode(['error' => 'Tipo de operación no válido', 'tipos_permitidos' => ['producto', 'categoria', 'almacen', 'usuario', 'entrada', 'salida']]);
+        echo json_encode(['error' => 'Tipo de operacion no valido', 'tipos_permitidos' => ['producto', 'categoria', 'almacen', 'usuario', 'entrada', 'salida']]);
         exit;
 }
 

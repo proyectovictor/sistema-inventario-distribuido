@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Probar inserciones</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        input, select, button { padding: 8px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>📦 Probar inserción en inventario</h1>
+    
+    <form method="POST" action="http://localhost/sistema-inventario-distribuido/backend/insertar.php">
+        <h3>Servidor destino:</h3>
+        <select name="sucursal">
+            <option value="A">☁️ Supabase A</option>
+            <option value="B">☁️ Supabase B</option>
+            <option value="local">💻 PostgreSQL Local</option>
+        </select>
+        
+        <input type="hidden" name="tipo" value="entrada">
+        
+        <h3>Datos de la entrada:</h3>
+        <input name="idproducto" placeholder="ID Producto" value="1" required>
+        <input name="cantidad" placeholder="Cantidad" value="10" required>
+        <input name="lote" placeholder="Lote" value="TEST-' . date('YmdHis') . '">
+        <input name="ubicacion" placeholder="Ubicación" value="Estante A-01">
+        
+        <br><br>
+        <button type="submit">🚀 Registrar entrada</button>
+    </form>
+    
+    <hr>
+    <p>📌 Respuesta del servidor aparecerá en una nueva página</p>
+</body>
+</html>
