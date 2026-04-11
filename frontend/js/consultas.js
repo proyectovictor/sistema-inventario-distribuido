@@ -2,6 +2,14 @@ const tablaBody = document.getElementById('tablaDatos');
 const searchInput = document.getElementById('searchInput');
 let productosData = [];
 
+const selectorSucursal = document.getElementById('selectorSucursal');
+if (selectorSucursal) {
+    selectorSucursal.addEventListener('change', function() {
+        setServidor(this.value);
+        cargarProductosConStock();
+    });
+}
+
 async function cargarProductosConStock() {
     if (!tablaBody) return;
     tablaBody.innerHTML = '<tr><td colspan="6" class="text-center">Cargando datos...</td></tr>';
@@ -86,8 +94,13 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function verMovimientos(idProducto) { window.location.href = `movimientos.html?id=${idProducto}`; }
-function editarProducto(idProducto) { window.location.href = `editar_producto.html?id=${idProducto}`; }
+function verMovimientos(idProducto) { 
+    alert(`📋 Historial del producto ID: ${idProducto}\n\nFunción disponible próximamente.`);
+}
+
+function editarProducto(idProducto) { 
+    alert(`✏️ Editar producto ID: ${idProducto}\n\nFunción disponible próximamente.`);
+}
 
 function exportarExcel() {
     const rows = document.querySelectorAll('#tablaDatos tr');

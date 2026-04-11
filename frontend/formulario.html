@@ -18,6 +18,18 @@
 
 <div class="content">
 
+  <!-- Después del sidebar o al inicio del content -->
+<!-- Dentro de <div class="content"> -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <span class="badge bg-primary" id="usuarioInfo">Cargando...</span>
+    <span class="badge bg-info" id="sucursalInfo">Sucursal: A</span>
+  </div>
+  <button id="logoutBtn" class="btn btn-sm btn-danger">
+    <i class="fa fa-sign-out-alt"></i> Cerrar Sesión
+  </button>
+</div>
+
 <h3 class="mb-4"><i class="fa fa-pen"></i> Captura de Movimientos</h3>
 
 <!-- STATS DINÁMICOS -->
@@ -137,7 +149,33 @@
 
 </div>
 
+<script src="js/auth.js"></script>
 <script src="js/api.js"></script>
 <script src="js/formulario.js"></script>
+<script>
+  const usuario = getUsuario();
+  if (usuario) {
+    document.getElementById('usuarioInfo').innerHTML = `<i class="fa fa-user"></i> ${usuario.nombre} (${usuario.rol})`;
+    const sucursalTexto = usuario.sucursal_defecto === 'AMBAS' ? 'Admin (puede cambiar)' : (usuario.sucursal_defecto === 'A' ? 'Central' : 'Norte');
+    document.getElementById('sucursalInfo').innerHTML = `<i class="fa fa-building"></i> Sucursal: ${sucursalTexto}`;
+    
+    const sucursalSelect = document.getElementById('sucursal');
+    
+    if (usuario.sucursal_defecto !== 'AMBAS') {
+        // Usuario normal: selector visible pero DESHABILITADO
+        sucursalSelect.disabled = true;
+        sucursalSelect.value = usuario.sucursal_defecto;
+        // Disparar evento para actualizar almacén
+        sucursalSelect.dispatchEvent(new Event('change'));
+    } else {
+        // Admin: selector habilitado
+        sucursalSelect.disabled = false;
+        sucursalSelect.style.display = 'block';
+    }
+  }
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  protegerPagina();
+</script>
+
 </body>
 </html>

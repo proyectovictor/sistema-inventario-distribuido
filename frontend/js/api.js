@@ -1,15 +1,44 @@
 /**
- * api.js
- * Comunicación con el backend PHP
+ * api.js - Comunicación con el backend PHP
  */
 
-const API_BASE_URL = 'http://localhost/sistema-inventario-distribuido/backend';
+// Usar la misma variable global (ya definida por auth.js)
+if (typeof window.API_BASE_URL === 'undefined') {
+    window.API_BASE_URL = 'http://localhost/sistema-inventario-distribuido/backend';
+}
 
-let servidorActivo = 'A';
+// ========== FUNCIONES DE SESIÓN ==========
+function getUsuario() {
+    const usuario = localStorage.getItem('usuario');
+    return usuario ? JSON.parse(usuario) : null;
+}
+
+function puedeCambiarSucursal() {
+    const usuario = getUsuario();
+    return usuario && usuario.sucursal_defecto === 'AMBAS';
+}
+
+function getSucursalFromSession() {
+    const usuario = getUsuario();
+    if (!usuario) return 'A';
+    if (usuario.sucursal_defecto === 'AMBAS') {
+        const guardada = localStorage.getItem('sucursal_seleccionada');
+        if (guardada && ['A', 'B', 'local'].includes(guardada)) {
+            return guardada;
+        }
+        return 'A';
+    }
+    return usuario.sucursal_defecto;
+}
+
+let servidorActivo = getSucursalFromSession();
 
 function setServidor(sucursal) {
     if (['A', 'B', 'local'].includes(sucursal)) {
         servidorActivo = sucursal;
+        if (puedeCambiarSucursal()) {
+            localStorage.setItem('sucursal_seleccionada', sucursal);
+        }
         return true;
     }
     return false;
@@ -19,11 +48,12 @@ function getServidor() {
     return servidorActivo;
 }
 
+// ========== CONSULTAS GET ==========
 async function consultar(accion, params = {}) {
     params.accion = accion;
-    params.sucursal = servidorActivo;
+    params.sucursal = getServidor();
     
-    const url = new URL(`${API_BASE_URL}/consultar.php`);
+    const url = new URL(`${window.API_BASE_URL}/consultar.php`);
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
     
     try {
@@ -35,10 +65,12 @@ async function consultar(accion, params = {}) {
             return { success: false, error: data.error };
         }
     } catch (error) {
+        console.error('Error en consultar:', error);
         return { success: false, error: error.message };
     }
 }
 
+// ========== INSERTAR MOVIMIENTO ==========
 async function registrarEntrada(datos) {
     const body = {
         tipo: 'entrada',
@@ -53,9 +85,12 @@ async function registrarEntrada(datos) {
     };
     
     try {
-        const response = await fetch(`${API_BASE_URL}/insertar.php`, {
+        const response = await fetch(`${window.API_BASE_URL}/insertar.php`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Sucursal': servidorActivo },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Sucursal': getServidor()
+            },
             body: JSON.stringify(body)
         });
         const data = await response.json();
@@ -65,6 +100,7 @@ async function registrarEntrada(datos) {
             return { success: false, error: data.error || data.mensaje, enCola: data.cola === true };
         }
     } catch (error) {
+        console.error('Error en registrarEntrada:', error);
         return { success: false, error: error.message };
     }
 }
@@ -80,9 +116,12 @@ async function registrarSalida(datos) {
     };
     
     try {
-        const response = await fetch(`${API_BASE_URL}/insertar.php`, {
+        const response = await fetch(`${window.API_BASE_URL}/insertar.php`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Sucursal': servidorActivo },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Sucursal': getServidor()
+            },
             body: JSON.stringify(body)
         });
         const data = await response.json();
@@ -92,10 +131,12 @@ async function registrarSalida(datos) {
             return { success: false, error: data.error || data.mensaje, enCola: data.cola === true };
         }
     } catch (error) {
+        console.error('Error en registrarSalida:', error);
         return { success: false, error: error.message };
     }
 }
 
+// ========== CRUD ==========
 async function obtenerProductos(idProducto = null) {
     const params = {};
     if (idProducto) params.id = idProducto;
@@ -139,34 +180,39 @@ async function obtenerEstadisticas() {
     };
 }
 
+// ========== TEST DE CONEXIÓN ==========
 async function testServerConnection(server) {
     try {
-        const url = `${API_BASE_URL}/consultar.php?accion=productos&sucursal=${server}&limite=1`;
+        const url = `${window.API_BASE_URL}/consultar.php?accion=productos&sucursal=${server}&limite=1`;
         const response = await fetch(url, { method: 'GET', headers: { 'X-Sucursal': server } });
         const data = await response.json();
         return data.success === true;
     } catch (error) {
+        console.error('Error testServerConnection:', error);
         return false;
     }
 }
 
+// ========== SINCRONIZACIÓN ==========
 async function ejecutarSincronizacion(forceServer = null) {
     try {
-        let url = `${API_BASE_URL}/sync/sync_manager.php`;
+        let url = `${window.API_BASE_URL}/sync/sync_manager.php`;
         if (forceServer) url += `?force=${forceServer}`;
         const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
         return await response.json();
     } catch (error) {
+        console.error('Error ejecutando sincronización:', error);
         return { error: error.message, exitosos: 0, pendientes: 0 };
     }
 }
 
+// ========== DETECTOR DE SERVIDOR ==========
 let servidorEstabaCaido = false;
 let intervaloDetector = null;
 
 async function isServerAvailable(server) {
     try {
-        const url = `${API_BASE_URL}/consultar.php?accion=productos&sucursal=${server}&limite=1`;
+        const url = `${window.API_BASE_URL}/consultar.php?accion=productos&sucursal=${server}&limite=1`;
         const response = await fetch(url, { method: 'GET', headers: { 'X-Sucursal': server }, cache: 'no-cache' });
         const data = await response.json();
         return data.success === true;
@@ -201,3 +247,5 @@ function detenerDetectorServidor() {
         intervaloDetector = null;
     }
 }
+
+console.log('✅ api.js cargado correctamente');

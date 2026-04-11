@@ -18,22 +18,38 @@
 
 <div class="content">
 
+  <!-- Después del sidebar o al inicio del content -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="badge bg-primary" id="usuarioInfo">Cargando...</span>
+        <span class="badge bg-info" id="sucursalInfo">Sucursal: A</span>
+    </div>
+    <button id="logoutBtn" class="btn btn-sm btn-danger">
+        <i class="fa fa-sign-out-alt"></i> Cerrar Sesión
+    </button>
+</div>
+
 <h3 class="mb-4"><i class="fa fa-table"></i> Inventario Actual</h3>
 
 <div class="card p-4">
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <div class="input-group">
-        <span class="input-group-text"><i class="fa fa-search"></i></span>
-        <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto por nombre o código...">
-      </div>
-    </div>
-    <div class="col-md-6 text-end">
-      <button id="exportarBtn" class="btn btn-success">
-        <i class="fa fa-file-excel"></i> Exportar
-      </button>
+  <!-- Dentro de <div class="card p-4"> -->
+<div class="row mb-3">
+  <div class="col-md-4">
+    <select id="selectorSucursal" class="form-control" style="display: none;">
+      <option value="A">(Almacén Central)</option>
+      <option value="B">(Almacén Norte)</option>
+    </select>
+  </div>
+  <div class="col-md-5">
+    <div class="input-group">
+      <span class="input-group-text"><i class="fa fa-search"></i></span>
+      <input type="text" id="searchInput" class="form-control" placeholder="Buscar producto...">
     </div>
   </div>
+  <div class="col-md-3 text-end">
+    <button id="exportarBtn" class="btn btn-success"><i class="fa fa-file-excel"></i> Exportar</button>
+  </div>
+</div>
   
   <div class="table-responsive">
     <table class="table table-hover">
@@ -56,7 +72,23 @@
 
 </div>
 
+<script src="js/auth.js"></script>
 <script src="js/api.js"></script>
 <script src="js/consultas.js"></script>
+<script>
+  const usuario = getUsuario();
+  if (usuario) {
+    document.getElementById('usuarioInfo').innerHTML = `<i class="fa fa-user"></i> ${usuario.nombre} (${usuario.rol})`;
+    const sucursalTexto = usuario.sucursal_defecto === 'AMBAS' ? 'Admin (puede elegir sucursal)' : (usuario.sucursal_defecto === 'A' ? 'Central' : 'Norte');
+    document.getElementById('sucursalInfo').innerHTML = `<i class="fa fa-building"></i> Sucursal: ${sucursalTexto}`;
+    
+    if (usuario.sucursal_defecto === 'AMBAS') {
+      document.getElementById('selectorSucursal').style.display = 'block';
+    }
+  }
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  protegerPagina();
+</script>
+
 </body>
 </html>
