@@ -2,6 +2,7 @@
 /**
  * sync_manager.php
  * Sincroniza datos desde LOCAL hacia servidores principales (A o B)
+ * Respeta el IdAlmacen al sincronizar
  */
 
 declare(strict_types=1);
@@ -42,8 +43,8 @@ class SyncManager {
             return $resultado;
         }
         
-        // Obtener pendientes
-        $pendientes = $this->cola->obtenerPendientes();
+        // Obtener pendientes filtrados por servidor de origen
+        $pendientes = $this->cola->obtenerPendientesPorOrigen($servidor);
         $resultado['pendientes'] = count($pendientes);
         
         if (empty($pendientes)) {
@@ -65,7 +66,7 @@ class SyncManager {
                 $this->cola->marcarComoProcesado($item['id']);
                 $resultado['exitosos']++;
             } else {
-                $this->cola->marcarComoError($item['id'], "Error en sync");
+                $this->cola->marcarComoError($item['id'], "Error en sync con {$servidor}");
                 $resultado['errores']++;
             }
         }
@@ -83,12 +84,28 @@ class SyncManager {
         $datos = json_decode($item['datos'], true);
         $operacion = $item['operacion'];
         
+        // Verificar que el almacén corresponde al servidor
+        $idAlmacen = $datos['idalmacen'] ?? null;
+        $servidorOrigen = $item['sucursal_origen'];
+        
+        // Validación: Si el servidor es A, solo debe sincronizar almacén Central (Id=1)
+        if ($servidorOrigen === 'A' && $idAlmacen != 1) {
+            $this->log("⚠️ Operación {$item['id']}: Servidor A solo acepta almacén Central (Id=1). Actual: {$idAlmacen}");
+            return false;
+        }
+        
+        // Validación: Si el servidor es B, solo debe sincronizar almacén Norte (Id=2)
+        if ($servidorOrigen === 'B' && $idAlmacen != 2) {
+            $this->log("⚠️ Operación {$item['id']}: Servidor B solo acepta almacén Norte (Id=2). Actual: {$idAlmacen}");
+            return false;
+        }
+        
         try {
             if ($operacion === 'entrada') {
                 $sql = "SELECT sp_registrar_entrada(:almacen, :usuario, :producto, :cantidad, :lote, :fecha, :ubicacion, :obs) as id";
                 $stmt = $conn->prepare($sql);
                 $stmt->execute([
-                    ':almacen' => $datos['idalmacen'] ?? 1,
+                    ':almacen' => $idAlmacen,
                     ':usuario' => $datos['idusuario'] ?? 1,
                     ':producto' => $datos['idproducto'],
                     ':cantidad' => $datos['cantidad'],
@@ -103,7 +120,7 @@ class SyncManager {
                 $sql = "SELECT sp_registrar_salida_fifo(:almacen, :usuario, :producto, :cantidad, :obs) as id";
                 $stmt = $conn->prepare($sql);
                 $stmt->execute([
-                    ':almacen' => $datos['idalmacen'] ?? 1,
+                    ':almacen' => $idAlmacen,
                     ':usuario' => $datos['idusuario'] ?? 1,
                     ':producto' => $datos['idproducto'],
                     ':cantidad' => $datos['cantidad'],
@@ -122,7 +139,14 @@ class SyncManager {
     public function getEstado(): array {
         return [
             'servidor_principal' => $this->detectarServidorPrincipal(),
-            'pendientes_local' => $this->cola->contarPendientes()
+            'pendientes_local_A' => $this->cola->contarPendientesPorOrigen('A'),
+            'pendientes_local_B' => $this->cola->contarPendientesPorOrigen('B')
         ];
+    }
+    
+    private function log(string $message): void {
+        $logFile = __DIR__ . '/../sync_log.log';
+        $timestamp = date('Y-m-d H:i:s');
+        file_put_contents($logFile, "[{$timestamp}] {$message}" . PHP_EOL, FILE_APPEND);
     }
 }

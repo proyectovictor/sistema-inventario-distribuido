@@ -17,11 +17,17 @@ if (!in_array($sucursal, ['A', 'B', 'local'])) {
     exit;
 }
 
-$idAlmacen = $_POST['idalmacen'] ?? 1;
+$idAlmacen = $_POST['idalmacen'] ?? null;
 $idUsuario = $_POST['idusuario'] ?? 1;
 $idProducto = $_POST['idproducto'] ?? null;
 $cantidad = $_POST['cantidad'] ?? 0;
 $observaciones = $_POST['observaciones'] ?? '';
+
+// Validar que el idalmacen sea 1 o 2
+if (!$idAlmacen || !in_array($idAlmacen, [1, 2])) {
+    echo json_encode(['error' => 'Almacén no válido. Debe ser Central (1) o Norte (2)']);
+    exit;
+}
 
 if (!$idProducto || $cantidad <= 0) {
     echo json_encode(['error' => 'Datos incompletos: idproducto y cantidad requeridos']);
@@ -60,6 +66,7 @@ try {
         'exito' => true,
         'servidor' => $sucursal,
         'id_movimiento' => $resultado['idmov'],
+        'id_almacen' => $idAlmacen,
         'mensaje' => 'Salida registrada correctamente'
     ]);
     
