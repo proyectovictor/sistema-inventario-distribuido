@@ -2,134 +2,180 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Captura</title>
-
+<title>Captura - Sistema Inventario</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 </head>
-
 <body>
 
 <div class="sidebar">
   <h4>📦 Inventario</h4>
+  <a href="index.html"><i class="fa fa-tachometer-alt"></i> Dashboard</a>
   <a href="formulario.html"><i class="fa fa-pen"></i> Captura</a>
   <a href="consultas.html"><i class="fa fa-table"></i> Consultas</a>
 </div>
 
 <div class="content">
 
-<h3 class="mb-4"> - Captura</h3>
+  <!-- Después del sidebar o al inicio del content -->
+<!-- Dentro de <div class="content"> -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <span class="badge bg-primary" id="usuarioInfo">Cargando...</span>
+    <span class="badge bg-info" id="sucursalInfo">Sucursal: A</span>
+  </div>
+  <button id="logoutBtn" class="btn btn-sm btn-danger">
+    <i class="fa fa-sign-out-alt"></i> Cerrar Sesión
+  </button>
+</div>
+
+<h3 class="mb-4"><i class="fa fa-pen"></i> Captura de Movimientos</h3>
 
 <!-- STATS DINÁMICOS -->
 <div class="row mb-4">
-
   <div class="col-md-4">
     <div class="stat-card">
-      <h5>Movimientos</h5>
+      <h5><i class="fa fa-exchange-alt"></i> Movimientos</h5>
       <h3 id="movimientos">0</h3>
     </div>
   </div>
-
   <div class="col-md-4">
     <div class="stat-card">
-      <h5>Productos</h5>
+      <h5><i class="fa fa-box"></i> Productos</h5>
       <h3 id="productos">0</h3>
     </div>
   </div>
-
   <div class="col-md-4">
     <div class="stat-card">
-      <h5>Alertas</h5>
+      <h5><i class="fa fa-exclamation-triangle"></i> Alertas</h5>
       <h3 id="alertas">0</h3>
     </div>
   </div>
-
 </div>
 
 <div class="card p-4">
-
-<h4 class="mb-4 text-white">Registrar Movimiento</h4>
-
-<form id="formMovimiento">
-
-<div class="row g-3">
-
-<!-- SUCURSAL -->
-<div class="col-md-6">
-<div class="input-group">
-<span class="input-group-text"><i class="fa fa-building"></i></span>
-<select id="sucursal" class="form-control">
-<option value="">Sucursal</option>
-<option>A</option>
-<option>B</option>
-</select>
+  <h4 class="mb-4 text-white">Registrar Movimiento</h4>
+  
+  <form id="formMovimiento">
+    <div class="row g-3">
+      
+      <!-- SUCURSAL (A o B) -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-building"></i></span>
+          <select id="sucursal" class="form-control" required>
+            <option value="">Seleccionar Sucursal</option>
+            <option value="A">Sucursal A</option>
+            <option value="B">Sucursal B</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- ALMACÉN (solo lectura, se asigna automáticamente) -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-warehouse"></i></span>
+          <input type="text" id="almacen" class="form-control" readonly disabled placeholder="Selecciona sucursal primero">
+        </div>
+      </div>
+      
+      <!-- TIPO MOVIMIENTO -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-exchange-alt"></i></span>
+          <select id="tipo" class="form-control" required>
+            <option value="">Seleccionar Tipo</option>
+            <option value="Entrada">📥 Entrada</option>
+            <option value="Salida">📤 Salida</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- PRODUCTO CON AUTOCOMPLETE -->
+      <div class="col-md-6 position-relative">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-box"></i></span>
+          <input type="text" id="producto" class="form-control" placeholder="Buscar producto..." autocomplete="off" required>
+        </div>
+        <div id="sugerencias" class="autocomplete-box"></div>
+      </div>
+      
+      <!-- CANTIDAD -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-hashtag"></i></span>
+          <input type="number" id="cantidad" class="form-control" placeholder="Cantidad" required>
+        </div>
+      </div>
+      
+      <!-- LOTE -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-tag"></i></span>
+          <input type="text" id="lote" class="form-control" placeholder="Lote (opcional)">
+        </div>
+      </div>
+      
+      <!-- UBICACIÓN -->
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-map-marker-alt"></i></span>
+          <input type="text" id="ubicacion" class="form-control" placeholder="Ubicación (opcional)">
+        </div>
+      </div>
+      
+      <!-- FECHA INGRESO (solo para entrada) -->
+      <div class="col-md-6" id="divFechaIngreso" style="display: none;">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+          <input type="date" id="fechaingreso" class="form-control">
+        </div>
+      </div>
+      
+      <!-- OBSERVACIONES -->
+      <div class="col-md-12">
+        <textarea id="obs" class="form-control" rows="2" placeholder="Observaciones (opcional)"></textarea>
+      </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary w-100 mt-4">
+      <i class="fa fa-save"></i> Guardar Movimiento
+    </button>
+    
+    <div id="mensaje" class="mt-3"></div>
+  </form>
 </div>
-</div>
-
-<!-- TIPO -->
-<div class="col-md-6">
-<div class="input-group">
-<span class="input-group-text"><i class="fa fa-exchange-alt"></i></span>
-<select id="tipo" class="form-control">
-<option value="">Tipo</option>
-<option>Entrada</option>
-<option>Salida</option>
-</select>
-</div>
-</div>
-
-<!-- PRODUCTO CON AUTOCOMPLETE 🔥 -->
-<div class="col-md-6 position-relative">
-  <div class="input-group">
-    <span class="input-group-text"><i class="fa fa-box"></i></span>
-    <input type="text" id="producto" class="form-control" placeholder="Buscar producto...">
-  </div>
-
-  <div id="sugerencias" class="autocomplete-box"></div>
-</div>
-
-<!-- CANTIDAD -->
-<div class="col-md-6">
-<div class="input-group">
-<span class="input-group-text"><i class="fa fa-hashtag"></i></span>
-<input type="number" id="cantidad" class="form-control" placeholder="Cantidad">
-</div>
-</div>
-
-<!-- LOTE -->
-<div class="col-md-6">
-<div class="input-group">
-<span class="input-group-text"><i class="fa fa-tag"></i></span>
-<input type="text" id="lote" class="form-control" placeholder="Lote">
-</div>
-</div>
-
-<!-- UBICACIÓN -->
-<div class="col-md-6">
-<div class="input-group">
-<span class="input-group-text"><i class="fa fa-map-marker-alt"></i></span>
-<input type="text" id="ubicacion" class="form-control" placeholder="Ubicación">
-</div>
-</div>
-
-<!-- OBS -->
-<div class="col-md-12">
-<textarea id="obs" class="form-control" placeholder="Observaciones"></textarea>
-</div>
 
 </div>
 
-<button class="btn btn-primary w-100 mt-4">Guardar</button>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/formulario.js"></script>
+<script>
+  const usuario = getUsuario();
+  if (usuario) {
+    document.getElementById('usuarioInfo').innerHTML = `<i class="fa fa-user"></i> ${usuario.nombre} (${usuario.rol})`;
+    const sucursalTexto = usuario.sucursal_defecto === 'AMBAS' ? 'Admin (puede cambiar)' : (usuario.sucursal_defecto === 'A' ? 'Central' : 'Norte');
+    document.getElementById('sucursalInfo').innerHTML = `<i class="fa fa-building"></i> Sucursal: ${sucursalTexto}`;
+    
+    const sucursalSelect = document.getElementById('sucursal');
+    
+    if (usuario.sucursal_defecto !== 'AMBAS') {
+        // Usuario normal: selector visible pero DESHABILITADO
+        sucursalSelect.disabled = true;
+        sucursalSelect.value = usuario.sucursal_defecto;
+        // Disparar evento para actualizar almacén
+        sucursalSelect.dispatchEvent(new Event('change'));
+    } else {
+        // Admin: selector habilitado
+        sucursalSelect.disabled = false;
+        sucursalSelect.style.display = 'block';
+    }
+  }
+  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  protegerPagina();
+</script>
 
-<div id="mensaje" class="mt-3"></div>
-
-</form>
-
-</div>
-
-</div>
-
-<script src="js/main.js"></script>
 </body>
 </html>

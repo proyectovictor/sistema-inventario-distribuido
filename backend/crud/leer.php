@@ -43,7 +43,6 @@ try {
                     LEFT JOIN categoria c ON p.IdCategoria = c.IdCategoria
                     ORDER BY p.IdProducto
                 ");
-                echo json_encode(['error' => 'ID de producto no proporcionado']);
             }
             $resultado = $stmt->fetchAll();
             break;
