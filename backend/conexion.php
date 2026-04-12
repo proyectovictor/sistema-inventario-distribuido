@@ -3,6 +3,8 @@
 /* Evitamos errores futuros por tipo de dato*/
 declare(strict_types=1);
 
+date_default_timezone_set('America/Cancun');
+
 /* Configuraciones para la base de datos */
 class DatabaseManager
 {
@@ -78,6 +80,8 @@ class DatabaseManager
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             $pdo->setAttribute(PDO::ATTR_TIMEOUT, $this->timeout);
+            
+            $pdo->exec("SET TIME ZONE 'America/Cancun'"); // Ajusta según tu ubicación
 
             $this->activeConnection = $pdo;
             $this->activeServer = $server;

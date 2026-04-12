@@ -52,6 +52,7 @@ function getServidor() {
 async function consultar(accion, params = {}) {
     params.accion = accion;
     params.sucursal = getServidor();
+    params._t = Date.now();
     
     const url = new URL(`${window.API_BASE_URL}/consultar.php`);
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
@@ -72,6 +73,9 @@ async function consultar(accion, params = {}) {
 
 // ========== INSERTAR MOVIMIENTO ==========
 async function registrarEntrada(datos) {
+    const usuario = getUsuario();
+    const idusuario = (datos.idusuario) ? datos.idusuario : (usuario ? usuario.id : 1);
+
     const body = {
         tipo: 'entrada',
         idproducto: datos.idproducto,
@@ -81,7 +85,7 @@ async function registrarEntrada(datos) {
         ubicacion: datos.ubicacion || 'General',
         observaciones: datos.observaciones || '',
         idalmacen: datos.idalmacen || 1,
-        idusuario: datos.idusuario || 1
+        idusuario: idusuario
     };
     
     try {
@@ -106,13 +110,16 @@ async function registrarEntrada(datos) {
 }
 
 async function registrarSalida(datos) {
+    const usuario = getUsuario();
+    const idusuario = (datos.idusuario) ? datos.idusuario : (usuario ? usuario.id : 1);
+
     const body = {
         tipo: 'salida',
         idproducto: datos.idproducto,
         cantidad: datos.cantidad,
         observaciones: datos.observaciones || '',
         idalmacen: datos.idalmacen || 1,
-        idusuario: datos.idusuario || 1
+        idusuario: idusuario
     };
     
     try {
