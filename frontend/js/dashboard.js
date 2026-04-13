@@ -45,7 +45,16 @@ async function cargarUltimosMovimientos() {
             resultado.data.forEach(mov => {
                 const row = document.createElement('tr');
                 const tipoClass = mov.tipo === 'Entrada' ? 'text-success' : 'text-danger';
-                row.innerHTML = `<td><small>${mov.fecha?.substring(0, 16) || '-'}</small></td><td class="${tipoClass}">${mov.tipo || '-'}</td><td>${mov.almacen || '-'}</td><td>${mov.usuario || '-'}</td><td>${mov.cantidad || '-'}</td>`;
+                let fechaHora = '-';
+                if (mov.fecha) {
+                    const fechaObj = new Date(mov.fecha);
+                    if (!isNaN(fechaObj)) {
+                        fechaHora = fechaObj.toLocaleString('es-MX', { timeZone: 'America/Cancun', hour12: false });
+                    } else {
+                        fechaHora = mov.fecha.substring(0, 16);
+                    }
+                }
+                row.innerHTML = `<td><small>${fechaHora}</small></td><td class="${tipoClass}">${mov.tipo || '-'}</td><td>${mov.almacen || '-'}</td><td>${mov.usuario || '-'}</td><td>${mov.cantidad || '-'}</td>`;
                 tbody.appendChild(row);
             });
         } else {
