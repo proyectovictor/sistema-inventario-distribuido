@@ -82,53 +82,81 @@ class SyncManager {
 
     /**
      * Sincroniza datos completos desde servidor principal a Local
-    */
+     * // CORRECCIÓN: Manejo correcto de booleanos y tipos de datos
+     */
     public function sincronizarDatosCompletos(string $servidorOrigen): array {
-        $resultado = [
-            'tablas' => [],
-            'exitoso' => true
-        ];
-        
-        $connOrigen = $this->db->getConnection($servidorOrigen);
-        $connLocal = $this->db->getConnection('local');
-        
-        if (!$connOrigen || !$connLocal) {
-            return ['exitoso' => false, 'error' => 'No se pudo conectar'];
-        }
-        
-        // Tablas a sincronizar (orden respeta FK)
-        $tablas = ['categoria', 'producto', 'almacen', 'usuario', 'tipomovimiento', 'stock_almacen'];
-        
-        foreach ($tablas as $tabla) {
-            try {
-                // Obtener datos del origen
-                $stmt = $connOrigen->query("SELECT * FROM $tabla");
-                $datos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                if (empty($datos)) continue;
-                
-                // Limpiar tabla local
-                $connLocal->exec("TRUNCATE TABLE $tabla RESTART IDENTITY CASCADE");
-                
-                // Insertar datos en local
-                foreach ($datos as $fila) {
+    $resultado = [
+        'tablas' => [],
+        'exitoso' => true,
+        'debug' => [] // Para depuración
+    ];
+    
+    $connOrigen = $this->db->getConnection($servidorOrigen);
+    $connLocal = $this->db->getConnection('local');
+    
+    if (!$connOrigen || !$connLocal) {
+        return ['exitoso' => false, 'error' => 'No se pudo conectar'];
+    }
+    
+    $tablas = ['categoria', 'producto', 'almacen', 'usuario', 'tipomovimiento', 'stock_almacen'];
+    
+    foreach ($tablas as $tabla) {
+        try {
+            $stmt = $connOrigen->query("SELECT * FROM $tabla");
+            $datos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (empty($datos)) continue;
+            
+            $connLocal->exec("TRUNCATE TABLE $tabla RESTART IDENTITY CASCADE");
+            
+            foreach ($datos as $idx => $fila) {
+                try {
                     $columnas = array_keys($fila);
                     $placeholders = array_fill(0, count($columnas), '?');
                     $sql = "INSERT INTO $tabla (" . implode(',', $columnas) . ") 
                             VALUES (" . implode(',', $placeholders) . ")";
-                    $stmt = $connLocal->prepare($sql);
-                    $stmt->execute(array_values($fila));
+                    $stmtInsert = $connLocal->prepare($sql);
+                    
+                    // Convertir valores
+                    // CORRECCIÓN: Convertir valores booleanos correctamente
+                    $valores = [];
+                    foreach ($fila as $key => $valor) {
+                        // Manejar booleanos de PostgreSQL (vienen como 't'/'f' o true/false)
+                        if ($valor === 't' || $valor === 'true' || $valor === true) {
+                            $valores[] = true;
+                        } elseif ($valor === 'f' || $valor === 'false' || $valor === false) {
+                            $valores[] = false;
+                        } elseif ($valor === null || $valor === '') {
+                            $valores[] = null;
+                        } else {
+                            $valores[] = $valor;
+                        }
+                    }
+                    
+                    $stmtInsert->execute($valores);
+                } catch (PDOException $e) {
+                    // Capturar fila específica que falla
+                    $resultado['debug'][] = [
+                        'tabla' => $tabla,
+                        'fila' => $idx,
+                        'datos' => $fila,
+                        'error' => $e->getMessage()
+                    ];
+                    throw $e; // Re-lanzar para salir del loop
                 }
-                
-                $resultado['tablas'][$tabla] = count($datos);
-            } catch (PDOException $e) {
-                $resultado['exitoso'] = false;
-                $resultado['error'] = $e->getMessage();
-                $this->log("Error sincronizando $tabla: " . $e->getMessage());
             }
+            
+            $resultado['tablas'][$tabla] = count($datos);
+        } catch (PDOException $e) {
+            $resultado['exitoso'] = false;
+            $resultado['error'] = $e->getMessage();
+            $this->log("Error sincronizando $tabla: " . $e->getMessage());
+            return $resultado; // Salir con el debug
         }
-        return $resultado;
     }
+    
+    return $resultado;
+}
     
     private function reproducirOperacion(PDO $conn, array $item): bool {
         $datos = json_decode($item['datos'], true);

@@ -11,9 +11,13 @@ require_once __DIR__ . '/sync_manager.php';
 
 $sync = new SyncManager();
 
-// Al inicio del archivo, agregar esta opción
-if ($_GET['accion'] === 'sincronizar_datos') {
+// CORRECCIÓN: Validar que el servidor sea A o B
+if (isset($_GET['accion']) && $_GET['accion'] === 'sincronizar_datos') {
     $servidor = $_GET['servidor'] ?? 'A';
+    if (!in_array($servidor, ['A', 'B'])) {
+        echo json_encode(['exitoso' => false, 'error' => 'Servidor no válido. Use A o B']);
+        exit;
+    }
     $resultado = $sync->sincronizarDatosCompletos($servidor);
     echo json_encode($resultado);
     exit;

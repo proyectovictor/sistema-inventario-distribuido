@@ -164,6 +164,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await verificarServidores();
     configurarSelectorServidor();
     iniciarDetector();
+
+     //(sincronización automática cada 30 minutos)
+    setInterval(async () => {
+        const servidor = getServidor();
+        if (servidor !== 'local') {
+            await fetch(`${API_BASE_URL}/sync/ejecutar_sync.php?accion=sincronizar_datos&servidor=${servidor}`);
+            console.log('Sincronización automática de datos completada');
+        }
+    }, 1800000); // 30 minutos
+
     const btnSync = document.getElementById('btnSincronizar');
     if (btnSync) btnSync.addEventListener('click', sincronizarManual);
 });
