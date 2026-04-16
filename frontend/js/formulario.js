@@ -100,8 +100,6 @@ async function cargarEstadisticasFormulario() {
 
 async function registrarMovimiento(event) {
     event.preventDefault();
-    const usuario = getUsuario();
-    const idUsuario = usuario ? usuario.id : 1;
     const sucursal = sucursalSelect?.value;
     const tipo = tipoSelect?.value?.toLowerCase();
     const productoNombre = productoInput?.value;
@@ -129,36 +127,24 @@ async function registrarMovimiento(event) {
     if (tipo === 'entrada') {
         resultado = await registrarEntrada({
             idproducto: idProducto, cantidad, lote, fechaingreso: fechaIngreso || new Date().toISOString().split('T')[0],
-            ubicacion, observaciones, idalmacen: idAlmacenActual, idusuario: idUsuario
+            ubicacion, observaciones, idalmacen: idAlmacenActual, idusuario: 1
         });
     } else {
         resultado = await registrarSalida({
-            idproducto: idProducto, cantidad, observaciones, idalmacen: idAlmacenActual, idusuario: idUsuario
+            idproducto: idProducto, cantidad, observaciones, idalmacen: idAlmacenActual, idusuario: 1
         });
     }
     
     if (resultado.success) {
-        mostrarMensaje(`✅ ${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada. ID: ${resultado.id_movimiento}`, 'success');
-
-        // Limpiar solo ciertos campos, no todo el formulario
-        cantidadInput.value = '';
-        loteInput.value = '';
-        ubicacionInput.value = '';
-        obsTextarea.value = '';
-        if (tipo === 'entrada') fechaIngresoInput.value = new Date().toISOString().split('T')[0];
-
-        // Limpiar producto
-        productoInput.value = '';
-        productoInput.dataset.id = '';
-
-        // Actualizar estadísticas
+        mostrarMensaje(`✅ ${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente. ID: ${resultado.id_movimiento}`, 'success');
+        formMovimiento?.reset();
+        if (productoInput) productoInput.dataset.id = '';
+        idAlmacenActual = null;
+        almacenInput.value = '';
         cargarEstadisticasFormulario();
-
-        // Opcional: mantener el foco en el campo producto para siguiente registro
-        productoInput.focus();
     } else {
         if (resultado.enCola) {
-            mostrarMensaje(`⚠️ Servidor ${sucursal} no disponible. Operación guardada en cola. Se sincronizará automáticamente.`, 'warning');
+            mostrarMensaje(`⚠️ Servidor ${sucursal} no disponible. Operación guardada en cola. Se sincronizará automáticamente cuando vuelva.`, 'warning');
         } else {
             mostrarMensaje(`❌ Error: ${resultado.error}`, 'danger');
         }
