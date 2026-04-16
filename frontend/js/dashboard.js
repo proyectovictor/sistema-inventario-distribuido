@@ -151,6 +151,12 @@ function iniciarDetector() {
     });
 }
 
+// Sincronizar datos al iniciar sesión
+async function sincronizarDatosInicial() {
+    const servidor = getServidor();
+    await fetch(`${API_BASE_URL}/sync/ejecutar_sync.php?accion=sincronizar_datos&servidor=${servidor}`);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     await cargarEstadisticas();
     await cargarAlertas();

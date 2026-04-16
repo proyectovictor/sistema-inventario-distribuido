@@ -79,6 +79,56 @@ class SyncManager {
         if ($this->db->testConnection('B')) return 'B';
         return null;
     }
+
+    /**
+     * Sincroniza datos completos desde servidor principal a Local
+    */
+    public function sincronizarDatosCompletos(string $servidorOrigen): array {
+        $resultado = [
+            'tablas' => [],
+            'exitoso' => true
+        ];
+        
+        $connOrigen = $this->db->getConnection($servidorOrigen);
+        $connLocal = $this->db->getConnection('local');
+        
+        if (!$connOrigen || !$connLocal) {
+            return ['exitoso' => false, 'error' => 'No se pudo conectar'];
+        }
+        
+        // Tablas a sincronizar (orden respeta FK)
+        $tablas = ['categoria', 'producto', 'almacen', 'usuario', 'tipomovimiento', 'stock_almacen'];
+        
+        foreach ($tablas as $tabla) {
+            try {
+                // Obtener datos del origen
+                $stmt = $connOrigen->query("SELECT * FROM $tabla");
+                $datos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (empty($datos)) continue;
+                
+                // Limpiar tabla local
+                $connLocal->exec("TRUNCATE TABLE $tabla RESTART IDENTITY CASCADE");
+                
+                // Insertar datos en local
+                foreach ($datos as $fila) {
+                    $columnas = array_keys($fila);
+                    $placeholders = array_fill(0, count($columnas), '?');
+                    $sql = "INSERT INTO $tabla (" . implode(',', $columnas) . ") 
+                            VALUES (" . implode(',', $placeholders) . ")";
+                    $stmt = $connLocal->prepare($sql);
+                    $stmt->execute(array_values($fila));
+                }
+                
+                $resultado['tablas'][$tabla] = count($datos);
+            } catch (PDOException $e) {
+                $resultado['exitoso'] = false;
+                $resultado['error'] = $e->getMessage();
+                $this->log("Error sincronizando $tabla: " . $e->getMessage());
+            }
+        }
+        return $resultado;
+    }
     
     private function reproducirOperacion(PDO $conn, array $item): bool {
         $datos = json_decode($item['datos'], true);

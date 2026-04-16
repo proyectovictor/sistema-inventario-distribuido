@@ -11,6 +11,14 @@ require_once __DIR__ . '/sync_manager.php';
 
 $sync = new SyncManager();
 
+// Al inicio del archivo, agregar esta opción
+if ($_GET['accion'] === 'sincronizar_datos') {
+    $servidor = $_GET['servidor'] ?? 'A';
+    $resultado = $sync->sincronizarDatosCompletos($servidor);
+    echo json_encode($resultado);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['force'])) {
     echo json_encode(['estado' => $sync->getEstado()], JSON_PRETTY_PRINT);
     exit;
